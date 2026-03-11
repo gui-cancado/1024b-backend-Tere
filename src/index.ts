@@ -112,6 +112,23 @@
 // console.log(...v1,v2)
 
 
+//Promessas
+//síncronas e assíncronas
+//Paralelismo  -> paralelo.
 
+
+console.log("Início da execução do código")
+//async function funcao(){
+const funcao = async () => {
+    const prom =
+        new Promise<string>((resolve, reject) => {
+            setTimeout(function handle() {
+                resolve("Executei a função")
+            }, 0)
+        })
+    return prom
+}
+funcao()
+console.log("Fim da execução do código")
 
 
