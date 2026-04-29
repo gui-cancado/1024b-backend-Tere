@@ -1,10 +1,14 @@
 import express from 'express'
 import MysqlErrorHandle from './mysql_error_handle.js'
 import connection from './mysql_connection.js'
+import type { RowDataPacket } from 'mysql2'
 
 const app = express()
 app.use(express.json())
 
+interface IQuantidadePedido extends RowDataPacket{
+    quantidade_pedido:number
+}
 
 // Crie uma rota '/cliente_data_pedido' que retorne os clientes e a data que os mesmos
 // fizeram o pedidos. Para realizar isso, utilize o comando inner join para juntar as tabelas.
@@ -33,7 +37,7 @@ app.get("/pedidos_2026", async (req, res) => {
     try {
         const [resultado, campos] =
             await connection.execute(`SELECT clientes_idclientes AS idclientes, clientes.nome, clientes.cidade, clientes.idade, idpedidos, datapedido FROM clientes INNER JOIN pedidos ON  
-clientes.idclientes = pedidos.clientes_idclientes WHERE datapedido >= 2026-01-01;`)
+clientes.idclientes = pedidos.clientes_idclientes WHERE datapedido >= '2026-01-01' AND datapedido <= '2026-12-31';`)
         console.log(resultado)
         res.status(200).json(resultado)
     } catch (err) {
@@ -50,9 +54,10 @@ clientes.idclientes = pedidos.clientes_idclientes WHERE datapedido >= 2026-01-01
 app.get("/quantidade_pedidos", async (req, res) => {
     try {
         const [resultado, campos] =
-            await connection.execute(`SELECT COUNT(idpedidos) AS quantidate_pedidos FROM pedidos;`)
-        console.log(resultado)
-        res.status(200).json(resultado)
+            await connection.execute<IQuantidadePedido[]>(`SELECT COUNT(idpedidos) AS quantidate_pedidos FROM pedidos;`)
+            const [quantidadePedido] = [...resultado]
+        console.log(quantidadePedido)
+        res.status(200).json(quantidadePedido)
     } catch (err) {
         const mysqlErrorHandle = new MysqlErrorHandle(err,res)
         mysqlErrorHandle.validar()
@@ -67,7 +72,53 @@ app.get("/quantidade_pedidos", async (req, res) => {
 app.get("/quantidade_pedidos_clientes", async (req, res) => {
     try {
         const [resultado, campos] =
-            await connection.execute(`SELECT clientes.nome,COUNT(idpedidos) AS quantidate_pedidos FROM pedidos INNER JOIN clientes ON clientes.idclientes = pedidos.clientes_idclientes GROUP BY clientes.nome;`)
+            await connection.execute(`SELECT c.nome AS nome, COUNT(*) AS quantidade_pedidos FROM clientes c
+                INNER JOIN pedidos p ON c.idclientes=p.clientes_idclientes
+                GROUP BY c.nome
+                ;`)
+        console.log(resultado)
+        res.status(200).json(resultado)
+    } catch (err) {
+        const mysqlErrorHandle = new MysqlErrorHandle(err,res)
+        mysqlErrorHandle.validar()
+    }
+})
+
+/**
+ * 5) ROTA  /quantidade_produtos_por_cliente 
+ * Crie um código que retorne o nome do cliente e a quantidade de produtos que cada pedido tem
+ *    formato   [{nome:"Nome Cliente",idpedido:1,quantidade_produtos:1000}]
+ */
+
+app.get("/quantidade_produtos_por_cliente", async (req, res) => {
+    try {
+        const [resultado, campos] =
+            await connection.execute(`SELECT c.nome,p.idpedidos, SUM(ip.quantidade) AS quantidade_produtos FROM clientes c 
+INNER JOIN pedidos p ON c.idclientes=p.clientes_idclientes 
+INNER JOIN itenspedidos ip ON ip.pedidos_idpedidos = p.idpedidos GROUP BY c.idclientes, c.nome,p.idpedidos;`)
+        console.log(resultado)
+        res.status(200).json(resultado)
+    } catch (err) {
+        const mysqlErrorHandle = new MysqlErrorHandle(err,res)
+        mysqlErrorHandle.validar()
+    }
+})
+
+/**
+ * 6) ROTA  /valor_pedido_total
+ * Crie um código que retorne o nome do cliente e o valor total de cada pedido
+ *    formato   [{nome:"Nome Cliente",valor_total:1000}]
+ */
+
+app.get("/valor_pedido_total", async (req, res) => {
+    try {
+        const [resultado, campos] =
+            await connection.execute(`SELECT c.nome,SUM(ip.quantidade * pr.preco) AS valor_total
+                FROM clientes c 
+                INNER JOIN pedidos p ON p.clientes_idclientes = c.idclientes
+                INNER JOIN itenspedidos ip ON ip.pedidos_idpedidos = p.idpedidos
+                INNER JOIN produtos pr ON pr.idprodutos = ip.produtos_idprodutos
+                GROUP BY c.idclientes, c.nome;`)
         console.log(resultado)
         res.status(200).json(resultado)
     } catch (err) {
