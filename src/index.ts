@@ -2,8 +2,10 @@ import express from 'express'
 import MysqlErrorHandle from './mysql_error_handle.js'
 import connection from './mysql_connection.js'
 import type { RowDataPacket } from 'mysql2'
+import cors from "cors"
 
 const app = express()
+app.use(cors())
 app.use(express.json())
 
 interface IQuantidadePedido extends RowDataPacket{
