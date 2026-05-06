@@ -7,11 +7,19 @@
 </head>
 <body>
     <h1>Olá mundo!</h1>
+    <div id="lista-pedidos">
+    </div>
     <script>
         async function buscaDados(){
             const resposta = await fetch("http://localhost:8000/valor_pedido_total")
             const dados = await resposta.json()
+            const div = document.getElementById('lista-pedidos')
             console.log(dados)
+            for (let i = 0; i < dados.length; i++) {
+                const element = dados[i];
+                console.log(element.nome, element.valor_total)
+                div.innerText += `${element.nome} ${element.valor_total}\n`
+            }
         }
         buscaDados();
     </script>
